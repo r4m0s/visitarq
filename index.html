@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es" style="font-size: 80%;">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Visitas Arquitectura</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <!-- jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+        
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        arch: {
+                            50: '#f9fafb',
+                            100: '#f3f4f6',
+                            200: '#e5e7eb',
+                            800: '#1f2937',
+                            900: '#111827',
+                            accent: '#3b82f6'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #f3f4f6; color: #1f2937; margin: 0; overflow: hidden; overscroll-behavior: none; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+        
+        .tool-btn.active { background-color: #e5e7eb; border-left-color: #111827; font-weight: bold; }
+        @media (max-width: 767px) {
+            .tool-btn.active { border-left-color: transparent; border-bottom: 3px solid #111827; }
+        }
+        
+        #canvas-container {
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            background-color: #e5e7eb;
+            flex: 1 1 0%;
+            touch-action: none; /* Previene scroll nativo en móvil */
+        }
+        
+        .canvas-wrapper {
+            position: absolute;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            transform-origin: 0 0;
+            will-change: transform;
+        }
+        
+        #pdf-canvas, #draw-canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #pdf-canvas { z-index: 1; }
+        #draw-canvas { z-index: 2; cursor: default; }
+        
+        /* Circular Color Picker */
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 50%;
+            padding: 0;
+            cursor: pointer;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col font-mono text-base">
+
+    <!-- PANTALLA DE INICIO -->
+    <div id="start-screen" class="absolute inset-0 z-50 flex items-center justify-center bg-arch-100 transition-opacity duration-300 overflow-y-auto p-4">
+        <div class="bg-white p-8 rounded-xl shadow-xl w-full max-w-md my-auto border border-gray-200">
+            <h1 class="text-2xl font-bold mb-6 text-arch-900 border-b pb-2 uppercase tracking-tight">NUEVO PROYECTO</h1>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">NOMBRE DEL PROYECTO</label>
+                    <input type="text" id="proj-name" class="w-full border border-gray-300 rounded-md p-2 focus:ring-arch-800 focus:border-arch-800 outline-none transition" placeholder="EJ. VIVIENDA UNIFAMILIAR">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">FECHA DE LA VISITA</label>
+                    <input type="date" id="proj-date" class="w-full border border-gray-300 rounded-md p-2 focus:ring-arch-800 focus:border-arch-800 outline-none transition">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">CARGAR PLANO (PDF)</label>
+                    <input type="file" id="proj-pdf" accept=".pdf" class="w-full border border-gray-300 rounded-md p-2 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-bold file:bg-arch-100 file:text-arch-800 hover:file:bg-arch-200 transition cursor-pointer font-mono">
+                </div>
+
+                <button id="btn-start" class="w-full mt-4 bg-arch-900 hover:bg-gray-800 text-white font-bold py-3 px-4 rounded-md transition duration-200 shadow-md uppercase tracking-wider">
+                    Comenzar Visita
+                </button>
+            </div>
+
+            <div class="mt-8 pt-6 border-t border-gray-200">
+                <h2 class="text-lg font-bold mb-4 text-arch-900 uppercase tracking-tight">CARGAR PROYECTO GUARDADO</h2>
+                <div class="flex flex-col gap-2">
+                    <button id="btn-select-dir" class="w-full bg-arch-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition duration-200 uppercase tracking-wider text-xs shadow-sm">
+                        Elegir Carpeta 'proyectos'
+                    </button>
+                    <select id="project-selector" class="w-full border border-gray-300 rounded-md p-2 outline-none font-mono text-sm hidden mt-2 cursor-pointer focus:ring-arch-800 focus:border-arch-800">
+                        <option value="">-- Selecciona un proyecto --</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VISTA PRINCIPAL -->
+    <div id="main-app" class="flex-1 flex flex-col md:flex-row overflow-hidden hidden">
+        
+        <!-- Área Central (Plano) -->
+        <div id="canvas-container" class="flex-1 relative z-10 order-1 md:order-2">
+            <div class="canvas-wrapper" id="canvas-wrapper">
+                <canvas id="pdf-canvas"></canvas>
+                <canvas id="draw-canvas"></canvas>
+            </div>
+        </div>
+
+        <!-- Menú / Barra de Herramientas (Inferior en móvil, Izquierda en Desktop) -->
+        <div class="w-full md:w-64 flex-shrink-0 bg-white border-t md:border-t-0 md:border-r border-gray-200 flex flex-row md:flex-col shadow-sm z-40 order-2 md:order-1 overflow-x-auto md:overflow-x-visible h-16 md:h-auto">
+            <div class="p-4 border-b border-gray-200 hidden md:block">
+                <h2 id="display-proj-name" class="font-bold text-gray-800 truncate uppercase tracking-tight">PROYECTO</h2>
+                <p id="display-proj-date" class="text-xs text-gray-500">FECHA</p>
+            </div>
+            
+            <div class="flex-1 flex flex-row md:flex-col overflow-y-auto py-0 md:py-2 min-w-max md:min-w-0">
+                <button onclick="setTool('select')" id="tool-select" class="tool-btn active md:w-full text-center md:text-left px-4 py-3 md:py-3 text-sm text-gray-700 hover:bg-gray-100 flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 transition-colors uppercase tracking-wider border-l-0 md:border-l-4 border-transparent">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
+                    <span class="text-[10px] md:text-sm">Selección</span>
+                </button>
+
+                <button onclick="setTool('point')" id="tool-point" class="tool-btn md:w-full text-center md:text-left px-4 py-3 md:py-3 text-sm text-gray-700 hover:bg-gray-100 flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 transition-colors uppercase tracking-wider border-l-0 md:border-l-4 border-transparent">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    <span class="text-[10px] md:text-sm">Punto</span>
+                </button>
+                
+                <button onclick="setTool('measure')" id="tool-measure" class="tool-btn md:w-full text-center md:text-left px-4 py-3 md:py-3 text-sm text-gray-700 hover:bg-gray-100 flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 transition-colors uppercase tracking-wider border-l-0 md:border-l-4 border-transparent">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5.5 5.5M20 16v4m0 0h-4m4 0l-5.5-5.5M4 16v4m0 0h4m-4 0l5.5-5.5M20 8V4m0 0h-4m4 0l-5.5 5.5"></path></svg>
+                    <span class="text-[10px] md:text-sm">Acotar</span>
+                </button>
+                
+                <!-- Acciones secundarias en la misma barra en móvil -->
+                <div class="h-8 w-px bg-gray-300 my-auto mx-2 md:hidden"></div>
+                
+                <button onclick="generateReport()" class="md:w-full md:mb-2 bg-white md:border border-gray-300 text-gray-700 hover:bg-gray-50 py-2 px-4 md:px-2 md:rounded flex flex-col md:flex-row items-center justify-center md:gap-2 text-xs uppercase tracking-wider transition font-bold">
+                    <svg class="w-5 h-5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    <span class="text-[10px] md:text-xs md:inline">Informe</span>
+                </button>
+                <button onclick="saveProject()" class="md:w-full md:mb-2 text-arch-900 md:text-white md:bg-arch-900 hover:bg-gray-100 md:hover:bg-gray-800 py-2 px-4 md:px-2 md:rounded flex flex-col md:flex-row items-center justify-center md:gap-2 text-xs uppercase tracking-wider transition md:shadow-sm font-bold">
+                    <svg class="w-5 h-5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                    <span class="text-[10px] md:text-xs md:inline">Guardar</span>
+                </button>
+                <button onclick="exitToMenu()" class="md:w-full text-red-600 md:border border-red-200 hover:bg-red-50 py-2 px-4 md:px-2 md:rounded flex flex-col md:flex-row items-center justify-center md:gap-2 text-xs uppercase tracking-wider transition font-bold">
+                    <svg class="w-5 h-5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    <span class="text-[10px] md:text-xs md:inline">Salir</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Panel de Propiedades (Lateral Derecho en Desktop, Bottom Sheet en Móvil) -->
+        <div id="right-panel" class="fixed bottom-0 left-0 right-0 max-h-[60vh] md:max-h-none md:relative md:w-80 flex-shrink-0 bg-white md:border-l border-t md:border-t-0 border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] md:shadow-sm z-50 transition-transform transform translate-y-full md:translate-y-0 hidden flex-col order-3 rounded-t-xl md:rounded-none">
+            <div class="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mt-2 md:hidden"></div>
+            <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-white md:bg-gray-50 rounded-t-xl md:rounded-none">
+                <h3 id="panel-title" class="font-bold text-gray-800 uppercase tracking-tight">PROPIEDADES</h3>
+                <button onclick="closePanel()" class="text-gray-500 hover:text-gray-800 p-2 -mr-2 bg-gray-100 rounded-full md:bg-transparent">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div class="p-4 flex-1 overflow-y-auto bg-white pb-8 md:pb-4" id="panel-content">
+                <!-- Contenido dinámico -->
+                <p class="text-sm text-gray-500 text-center mt-10">Selecciona o crea un punto/medida en el plano para editarlo.</p>
+            </div>
+        </div>
+        
+        <!-- Overlay oscuro para el panel en móvil -->
+        <div id="panel-overlay" class="fixed inset-0 bg-black bg-opacity-20 z-40 hidden md:hidden" onclick="closePanel()"></div>
+
+    </div>
+
+    <!-- Caja de mensajes -->
+    <div id="msg-box" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-arch-900 text-white px-6 py-3 rounded shadow-lg z-[110] transition-opacity duration-300 opacity-0 pointer-events-none font-mono text-sm uppercase tracking-wider">
+        Mensaje
+    </div>
+
+    <!-- Visor de Imágenes Modal -->
+    <div id="image-viewer" class="fixed inset-0 z-[120] bg-black bg-opacity-95 flex-col hidden flex">
+        <div class="p-4 flex justify-between items-center text-white w-full">
+            <div id="viewer-count" class="font-mono text-sm font-bold bg-gray-800 px-3 py-1 rounded">1 / 1</div>
+            <button onclick="closeImageViewer()" class="text-white hover:text-red-400 p-2 transition">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <div class="flex-1 flex items-center justify-center relative px-2 w-full pb-10">
+            <button onclick="viewerPrev()" class="absolute left-2 md:left-10 text-white hover:text-arch-accent bg-gray-800 bg-opacity-50 hover:bg-opacity-80 rounded-full p-2 transition z-10">
+                <svg class="w-8 h-8 md:w-10 md:h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+            </button>
+            <img id="viewer-img" src="" alt="Visor" class="max-w-full max-h-[85vh] object-contain rounded shadow-2xl">
+            <button onclick="viewerNext()" class="absolute right-2 md:right-10 text-white hover:text-arch-accent bg-gray-800 bg-opacity-50 hover:bg-opacity-80 rounded-full p-2 transition z-10">
+                <svg class="w-8 h-8 md:w-10 md:h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- ESTADO ---
+        let appState = {
+            project: { name: "", date: "" },
+            pdfBase64: null, 
+            points: [],
+            measurements: [],
+            nextPointNum: 1
+        };
+
+        let pdfDoc = null;
+        let activeTool = 'select';
+        let measureStart = null;
+        let selectedItem = null;
+        
+        let viewportTransform = { x: 0, y: 0, scale: 1 };
+        let baseWidth = 0;
+        let baseHeight = 0;
+        
+        let isPanMode = false;
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let scrollStartX = 0;
+        let scrollStartY = 0;
+
+        // Variables Touch
+        let initialPinchDistance = null;
+        let initialPinchScale = 1;
+        let lastTouchX = 0;
+        let lastTouchY = 0;
+
+        let projectHandles = {};
+
+        const pdfCanvas = document.getElementById('pdf-canvas');
+        const pdfCtx = pdfCanvas.getContext('2d');
+        const drawCanvas = document.getElementById('draw-canvas');
+        const drawCtx = drawCanvas.getContext('2d');
+        const rightPanel = document.getElementById('right-panel');
+        const panelOverlay = document.getElementById('panel-overlay');
+        const container = document.getElementById('canvas-container');
+
+        function showMessage(msg) {
+            const msgBox = document.getElementById('msg-box');
+            msgBox.textContent = msg;
+            msgBox.classList.remove('opacity-0');
+            setTimeout(() => { msgBox.classList.add('opacity-0'); }, 3000);
+        }
+
+        function applyZoom() {
+            const wrapper = document.getElementById('canvas-wrapper');
+            wrapper.style.transform = `translate(${viewportTransform.x}px, ${viewportTransform.y}px) scale(${viewportTransform.scale})`;
+        }
+
+        // --- MOUSE WHEEL ZOOM ---
+        container.addEventListener('wheel', (e) => {
+            if (document.getElementById('main-app').classList.contains('hidden')) return;
+            e.preventDefault(); 
+            
+            const rect = container.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            const zoomFactor = 1.1;
+            const oldScale = viewportTransform.scale;
+            let newScale = e.deltaY < 0 ? oldScale * zoomFactor : oldScale / zoomFactor;
+            
+            newScale = Math.max(0.1, Math.min(newScale, 10)); 
+            
+            const canvasX = (mouseX - viewportTransform.x) / oldScale;
+            const canvasY = (mouseY - viewportTransform.y) / oldScale;
+            
+            viewportTransform.x = mouseX - canvasX * newScale;
+            viewportTransform.y = mouseY - canvasY * newScale;
+            viewportTransform.scale = newScale;
+            
+            applyZoom();
+        }, { passive: false });
+
+        // --- KEYBOARD (Ctrl Pan) ---
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Control') {
+                isPanMode = true;
+                if (!isDragging) drawCanvas.style.cursor = 'grab';
+            }
+        });
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'Control') {
+                isPanMode = false;
+                if (!isDragging) drawCanvas.style.cursor = activeTool === 'select' ? 'default' : 'crosshair';
+            }
+        });
+
+        // --- TOUCH GESTURES (Mobile Pan/Zoom) ---
+        function getDistance(touches) {
+            return Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
+        }
+        function getMidpoint(touches) {
+            return {
+                x: (touches[0].clientX + touches[1].
