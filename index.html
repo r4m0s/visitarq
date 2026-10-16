@@ -2,7 +2,7 @@
 <html lang="es" style="font-size: 80%;">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visitas Arquitectura</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -32,31 +32,27 @@
         }
     </script>
     <style>
-        body { background-color: #f3f4f6; color: #1f2937; margin: 0; overflow: hidden; overscroll-behavior: none; }
+        body { background-color: #f3f4f6; color: #1f2937; margin: 0; overflow: hidden; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
         
-        .tool-btn.active { background-color: #e5e7eb; border-left-color: #111827; font-weight: bold; }
-        @media (max-width: 767px) {
-            .tool-btn.active { border-left-color: transparent; border-bottom: 3px solid #111827; }
-        }
+        .tool-btn.active { background-color: #e5e7eb; border-left: 4px solid #111827; font-weight: bold; }
         
         #canvas-container {
             position: relative;
-            overflow: hidden;
+            overflow: hidden; /* Oculta lo que desborde del lienzo interno */
             width: 100%;
             height: 100%;
             background-color: #e5e7eb;
             flex: 1 1 0%;
-            touch-action: none; /* Previene scroll nativo en móvil */
         }
         
         .canvas-wrapper {
             position: absolute;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            transform-origin: 0 0;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transform-origin: 0 0; /* Origen arriba a la izquierda para calcular mejor las coordenadas */
             will-change: transform;
         }
         
@@ -69,26 +65,31 @@
             height: 100%;
         }
         
-        #pdf-canvas { z-index: 1; }
+        #pdf-canvas { position: relative; z-index: 1; }
         #draw-canvas { z-index: 2; cursor: default; }
         
         /* Circular Color Picker */
         input[type="color"] {
             -webkit-appearance: none;
             border: none;
-            width: 2.5rem;
-            height: 2.5rem;
+            width: 2rem;
+            height: 2rem;
             border-radius: 50%;
             padding: 0;
             cursor: pointer;
             overflow: hidden;
             box-shadow: 0 1px 3px rgba(0,0,0,0.2);
         }
-        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
-        input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border: none;
+            border-radius: 50%;
+        }
     </style>
 </head>
-<body class="h-screen w-screen flex flex-col font-mono text-base">
+<body class="h-screen w-screen flex flex-col font-mono">
 
     <!-- PANTALLA DE INICIO -->
     <div id="start-screen" class="absolute inset-0 z-50 flex items-center justify-center bg-arch-100 transition-opacity duration-300 overflow-y-auto p-4">
@@ -129,121 +130,119 @@
     </div>
 
     <!-- VISTA PRINCIPAL -->
-    <div id="main-app" class="flex-1 flex flex-col md:flex-row overflow-hidden hidden">
+    <div id="main-app" class="flex-1 flex overflow-hidden hidden">
         
+        <!-- Menú Lateral Izquierdo -->
+        <div class="w-16 md:w-64 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col shadow-sm z-20">
+            <div class="p-4 border-b border-gray-200 hidden md:block">
+                <h2 id="display-proj-name" class="font-bold text-gray-800 truncate uppercase tracking-tight">PROYECTO</h2>
+                <p id="display-proj-date" class="text-xs text-gray-500">FECHA</p>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto py-2">
+                <button onclick="setTool('select')" id="tool-select" class="tool-btn active w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors uppercase tracking-wider">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
+                    <span class="hidden md:inline">Selección</span>
+                </button>
+
+                <button onclick="setTool('point')" id="tool-point" class="tool-btn w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors uppercase tracking-wider">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    <span class="hidden md:inline">Crear Punto</span>
+                </button>
+                
+                <button onclick="setTool('measure')" id="tool-measure" class="tool-btn w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors uppercase tracking-wider">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5.5 5.5M20 16v4m0 0h-4m4 0l-5.5-5.5M4 16v4m0 0h4m-4 0l5.5-5.5M20 8V4m0 0h-4m4 0l-5.5 5.5"></path></svg>
+                    <span class="hidden md:inline">Cota / Medida</span>
+                </button>
+            </div>
+            
+            <div class="p-2 border-t border-gray-200">
+                <button onclick="generateReport()" class="w-full mb-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 py-2 px-2 rounded flex items-center justify-center gap-2 text-xs uppercase tracking-wider transition font-bold">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    <span class="hidden md:inline">Generar Informe</span>
+                </button>
+                <button onclick="saveProject()" class="w-full mb-2 bg-arch-900 text-white hover:bg-gray-800 py-2 px-2 rounded flex items-center justify-center gap-2 text-xs uppercase tracking-wider transition shadow-sm font-bold">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                    <span class="hidden md:inline">Guardar Proyecto</span>
+                </button>
+                <button onclick="exitToMenu()" class="w-full text-red-600 border border-red-200 hover:bg-red-50 py-2 px-2 rounded flex items-center justify-center gap-2 text-xs uppercase tracking-wider transition font-bold">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    <span class="hidden md:inline">Salir al Inicio</span>
+                </button>
+            </div>
+        </div>
+
         <!-- Área Central (Plano) -->
-        <div id="canvas-container" class="flex-1 relative z-10 order-1 md:order-2">
+        <div id="canvas-container" class="flex-1 relative z-10">
             <div class="canvas-wrapper" id="canvas-wrapper">
                 <canvas id="pdf-canvas"></canvas>
                 <canvas id="draw-canvas"></canvas>
             </div>
         </div>
 
-        <!-- Menú / Barra de Herramientas (Inferior en móvil, Izquierda en Desktop) -->
-        <div class="w-full md:w-64 flex-shrink-0 bg-white border-t md:border-t-0 md:border-r border-gray-200 flex flex-row md:flex-col shadow-sm z-40 order-2 md:order-1 overflow-x-auto md:overflow-x-visible h-16 md:h-auto">
-            <div class="p-4 border-b border-gray-200 hidden md:block">
-                <h2 id="display-proj-name" class="font-bold text-gray-800 truncate uppercase tracking-tight">PROYECTO</h2>
-                <p id="display-proj-date" class="text-xs text-gray-500">FECHA</p>
-            </div>
-            
-            <div class="flex-1 flex flex-row md:flex-col overflow-y-auto py-0 md:py-2 min-w-max md:min-w-0">
-                <button onclick="setTool('select')" id="tool-select" class="tool-btn active md:w-full text-center md:text-left px-4 py-3 md:py-3 text-sm text-gray-700 hover:bg-gray-100 flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 transition-colors uppercase tracking-wider border-l-0 md:border-l-4 border-transparent">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
-                    <span class="text-[10px] md:text-sm">Selección</span>
-                </button>
-
-                <button onclick="setTool('point')" id="tool-point" class="tool-btn md:w-full text-center md:text-left px-4 py-3 md:py-3 text-sm text-gray-700 hover:bg-gray-100 flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 transition-colors uppercase tracking-wider border-l-0 md:border-l-4 border-transparent">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                    <span class="text-[10px] md:text-sm">Punto</span>
-                </button>
-                
-                <button onclick="setTool('measure')" id="tool-measure" class="tool-btn md:w-full text-center md:text-left px-4 py-3 md:py-3 text-sm text-gray-700 hover:bg-gray-100 flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 transition-colors uppercase tracking-wider border-l-0 md:border-l-4 border-transparent">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5.5 5.5M20 16v4m0 0h-4m4 0l-5.5-5.5M4 16v4m0 0h4m-4 0l5.5-5.5M20 8V4m0 0h-4m4 0l-5.5 5.5"></path></svg>
-                    <span class="text-[10px] md:text-sm">Acotar</span>
-                </button>
-                
-                <!-- Acciones secundarias en la misma barra en móvil -->
-                <div class="h-8 w-px bg-gray-300 my-auto mx-2 md:hidden"></div>
-                
-                <button onclick="generateReport()" class="md:w-full md:mb-2 bg-white md:border border-gray-300 text-gray-700 hover:bg-gray-50 py-2 px-4 md:px-2 md:rounded flex flex-col md:flex-row items-center justify-center md:gap-2 text-xs uppercase tracking-wider transition font-bold">
-                    <svg class="w-5 h-5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                    <span class="text-[10px] md:text-xs md:inline">Informe</span>
-                </button>
-                <button onclick="saveProject()" class="md:w-full md:mb-2 text-arch-900 md:text-white md:bg-arch-900 hover:bg-gray-100 md:hover:bg-gray-800 py-2 px-4 md:px-2 md:rounded flex flex-col md:flex-row items-center justify-center md:gap-2 text-xs uppercase tracking-wider transition md:shadow-sm font-bold">
-                    <svg class="w-5 h-5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
-                    <span class="text-[10px] md:text-xs md:inline">Guardar</span>
-                </button>
-                <button onclick="exitToMenu()" class="md:w-full text-red-600 md:border border-red-200 hover:bg-red-50 py-2 px-4 md:px-2 md:rounded flex flex-col md:flex-row items-center justify-center md:gap-2 text-xs uppercase tracking-wider transition font-bold">
-                    <svg class="w-5 h-5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                    <span class="text-[10px] md:text-xs md:inline">Salir</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Panel de Propiedades (Lateral Derecho en Desktop, Bottom Sheet en Móvil) -->
-        <div id="right-panel" class="fixed bottom-0 left-0 right-0 max-h-[60vh] md:max-h-none md:relative md:w-80 flex-shrink-0 bg-white md:border-l border-t md:border-t-0 border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] md:shadow-sm z-50 transition-transform transform translate-y-full md:translate-y-0 hidden flex-col order-3 rounded-t-xl md:rounded-none">
-            <div class="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mt-2 md:hidden"></div>
-            <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-white md:bg-gray-50 rounded-t-xl md:rounded-none">
+        <!-- Panel Lateral Derecho (Contextual) -->
+        <div id="right-panel" class="w-80 flex-shrink-0 bg-white border-l border-gray-200 shadow-sm z-20 hidden flex-col">
+            <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
                 <h3 id="panel-title" class="font-bold text-gray-800 uppercase tracking-tight">PROPIEDADES</h3>
-                <button onclick="closePanel()" class="text-gray-500 hover:text-gray-800 p-2 -mr-2 bg-gray-100 rounded-full md:bg-transparent">
+                <button onclick="closePanel()" class="text-gray-400 hover:text-gray-700 md:hidden">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
             
-            <div class="p-4 flex-1 overflow-y-auto bg-white pb-8 md:pb-4" id="panel-content">
+            <div class="p-4 flex-1 overflow-y-auto" id="panel-content">
                 <!-- Contenido dinámico -->
                 <p class="text-sm text-gray-500 text-center mt-10">Selecciona o crea un punto/medida en el plano para editarlo.</p>
             </div>
         </div>
-        
-        <!-- Overlay oscuro para el panel en móvil -->
-        <div id="panel-overlay" class="fixed inset-0 bg-black bg-opacity-20 z-40 hidden md:hidden" onclick="closePanel()"></div>
 
     </div>
 
-    <!-- Caja de mensajes -->
-    <div id="msg-box" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-arch-900 text-white px-6 py-3 rounded shadow-lg z-[110] transition-opacity duration-300 opacity-0 pointer-events-none font-mono text-sm uppercase tracking-wider">
+    <!-- Caja de mensajes personalizada para evitar alert() -->
+    <div id="msg-box" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-arch-900 text-white px-6 py-3 rounded shadow-lg z-50 transition-opacity duration-300 opacity-0 pointer-events-none font-mono text-sm uppercase tracking-wider">
         Mensaje
     </div>
 
     <!-- Visor de Imágenes Modal -->
-    <div id="image-viewer" class="fixed inset-0 z-[120] bg-black bg-opacity-95 flex-col hidden flex">
+    <div id="image-viewer" class="fixed inset-0 z-[100] bg-black bg-opacity-90 flex-col hidden flex">
         <div class="p-4 flex justify-between items-center text-white w-full">
             <div id="viewer-count" class="font-mono text-sm font-bold bg-gray-800 px-3 py-1 rounded">1 / 1</div>
             <button onclick="closeImageViewer()" class="text-white hover:text-red-400 p-2 transition">
                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
-        <div class="flex-1 flex items-center justify-center relative px-2 w-full pb-10">
-            <button onclick="viewerPrev()" class="absolute left-2 md:left-10 text-white hover:text-arch-accent bg-gray-800 bg-opacity-50 hover:bg-opacity-80 rounded-full p-2 transition z-10">
-                <svg class="w-8 h-8 md:w-10 md:h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        <div class="flex-1 flex items-center justify-center relative px-12 w-full pb-10">
+            <button onclick="viewerPrev()" class="absolute left-4 md:left-10 text-white hover:text-arch-accent bg-gray-800 bg-opacity-50 hover:bg-opacity-80 rounded-full p-2 transition">
+                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
             </button>
-            <img id="viewer-img" src="" alt="Visor" class="max-w-full max-h-[85vh] object-contain rounded shadow-2xl">
-            <button onclick="viewerNext()" class="absolute right-2 md:right-10 text-white hover:text-arch-accent bg-gray-800 bg-opacity-50 hover:bg-opacity-80 rounded-full p-2 transition z-10">
-                <svg class="w-8 h-8 md:w-10 md:h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            <img id="viewer-img" src="" alt="Visor" class="max-w-full max-h-[85vh] object-contain rounded shadow-2xl border border-gray-700">
+            <button onclick="viewerNext()" class="absolute right-4 md:right-10 text-white hover:text-arch-accent bg-gray-800 bg-opacity-50 hover:bg-opacity-80 rounded-full p-2 transition">
+                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
             </button>
         </div>
     </div>
 
     <script>
-        // --- ESTADO ---
+        // --- ESTADO DE LA APLICACIÓN ---
         let appState = {
             project: { name: "", date: "" },
             pdfBase64: null, 
-            points: [],
-            measurements: [],
+            points: [],      // { id, x, y, num, color, images: [{id, data}] }
+            measurements: [],// { id, x1, y1, x2, y2, text }
             nextPointNum: 1
         };
 
         let pdfDoc = null;
-        let activeTool = 'select';
+        let pdfScale = 1.5;
+        let activeTool = 'select'; // Herramienta por defecto
         let measureStart = null;
         let selectedItem = null;
         
+        // Variables para zoom y transformaciones
         let viewportTransform = { x: 0, y: 0, scale: 1 };
         let baseWidth = 0;
         let baseHeight = 0;
         
+        // Paneo (Arrastrar con Ctrl)
         let isPanMode = false;
         let isDragging = false;
         let dragStartX = 0;
@@ -251,12 +250,7 @@
         let scrollStartX = 0;
         let scrollStartY = 0;
 
-        // Variables Touch
-        let initialPinchDistance = null;
-        let initialPinchScale = 1;
-        let lastTouchX = 0;
-        let lastTouchY = 0;
-
+        // Directorios locales
         let projectHandles = {};
 
         const pdfCanvas = document.getElementById('pdf-canvas');
@@ -264,8 +258,6 @@
         const drawCanvas = document.getElementById('draw-canvas');
         const drawCtx = drawCanvas.getContext('2d');
         const rightPanel = document.getElementById('right-panel');
-        const panelOverlay = document.getElementById('panel-overlay');
-        const container = document.getElementById('canvas-container');
 
         function showMessage(msg) {
             const msgBox = document.getElementById('msg-box');
@@ -279,7 +271,7 @@
             wrapper.style.transform = `translate(${viewportTransform.x}px, ${viewportTransform.y}px) scale(${viewportTransform.scale})`;
         }
 
-        // --- MOUSE WHEEL ZOOM ---
+        const container = document.getElementById('canvas-container');
         container.addEventListener('wheel', (e) => {
             if (document.getElementById('main-app').classList.contains('hidden')) return;
             e.preventDefault(); 
@@ -294,9 +286,11 @@
             
             newScale = Math.max(0.1, Math.min(newScale, 10)); 
             
+            // Calculamos la posición del ratón en las coordenadas originales del canvas
             const canvasX = (mouseX - viewportTransform.x) / oldScale;
             const canvasY = (mouseY - viewportTransform.y) / oldScale;
             
+            // Ajustamos la traslación para que el punto bajo el ratón no se mueva
             viewportTransform.x = mouseX - canvasX * newScale;
             viewportTransform.y = mouseY - canvasY * newScale;
             viewportTransform.scale = newScale;
@@ -304,24 +298,670 @@
             applyZoom();
         }, { passive: false });
 
-        // --- KEYBOARD (Ctrl Pan) ---
+        // Eventos de Teclado para Paneo (Ctrl)
         window.addEventListener('keydown', (e) => {
             if (e.key === 'Control') {
                 isPanMode = true;
                 if (!isDragging) drawCanvas.style.cursor = 'grab';
             }
         });
+
         window.addEventListener('keyup', (e) => {
             if (e.key === 'Control') {
                 isPanMode = false;
-                if (!isDragging) drawCanvas.style.cursor = activeTool === 'select' ? 'default' : 'crosshair';
+                if (!isDragging) {
+                    drawCanvas.style.cursor = activeTool === 'select' ? 'default' : 'crosshair';
+                }
             }
         });
 
-        // --- TOUCH GESTURES (Mobile Pan/Zoom) ---
-        function getDistance(touches) {
-            return Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
+        window.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                drawCanvas.style.cursor = isPanMode ? 'grab' : (activeTool === 'select' ? 'default' : 'crosshair');
+            }
+        });
+
+        // --- INICIALIZACIÓN ---
+        document.getElementById('btn-start').addEventListener('click', async () => {
+            const name = document.getElementById('proj-name').value;
+            const date = document.getElementById('proj-date').value;
+            const fileInput = document.getElementById('proj-pdf');
+            
+            if(!fileInput.files.length && !appState.pdfBase64) {
+                showMessage("POR FAVOR CARGA UN PLANO (PDF).");
+                return;
+            }
+
+            appState.project.name = name || "PROYECTO SIN NOMBRE";
+            appState.project.date = date || new Date().toLocaleDateString();
+            
+            document.getElementById('display-proj-name').textContent = appState.project.name;
+            document.getElementById('display-proj-date').textContent = appState.project.date;
+
+            if(fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    appState.pdfBase64 = e.target.result;
+                    await renderPDF(e.target.result);
+                    startGame();
+                };
+                reader.readAsDataURL(file);
+            } else {
+                await renderPDF(appState.pdfBase64);
+                startGame();
+            }
+        });
+
+        function startGame() {
+            document.getElementById('start-screen').classList.add('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('main-app').classList.remove('hidden');
+                rightPanel.classList.remove('hidden');
+                setTool('select'); // Activar selección al inicio
+                redrawOverlay();
+            }, 300);
         }
-        function getMidpoint(touches) {
-            return {
-                x: (touches[0].clientX + touches[1].
+
+        // --- MANEJO DE PDF ---
+        async function renderPDF(dataUrl) {
+            const base64Data = dataUrl.split(',')[1];
+            const pdfData = atob(base64Data);
+            const uint8Array = new Uint8Array(pdfData.length);
+            for (let i = 0; i < pdfData.length; i++) {
+                uint8Array[i] = pdfData.charCodeAt(i);
+            }
+
+            const loadingTask = pdfjsLib.getDocument({data: uint8Array});
+            pdfDoc = await loadingTask.promise;
+            const page = await pdfDoc.getPage(1);
+            
+            const viewport = page.getViewport({scale: pdfScale});
+            
+            pdfCanvas.width = viewport.width;
+            pdfCanvas.height = viewport.height;
+            drawCanvas.width = viewport.width;
+            drawCanvas.height = viewport.height;
+            
+            baseWidth = viewport.width;
+            baseHeight = viewport.height;
+            
+            const wrapper = document.getElementById('canvas-wrapper');
+            wrapper.style.width = `${baseWidth}px`;
+            wrapper.style.height = `${baseHeight}px`;
+
+            // Centrar plano inicialmente
+            const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
+            viewportTransform = {
+                x: (containerRect.width - baseWidth) / 2,
+                y: (containerRect.height - baseHeight) / 2,
+                scale: 1
+            };
+            applyZoom();
+
+            const renderContext = {
+                canvasContext: pdfCtx,
+                viewport: viewport
+            };
+            await page.render(renderContext).promise;
+            redrawOverlay();
+        }
+
+        // --- HERRAMIENTAS ---
+        function setTool(tool) {
+            activeTool = tool;
+            measureStart = null;
+            
+            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`tool-${tool}`).classList.add('active');
+            
+            if(activeTool === 'point' || activeTool === 'measure') {
+                drawCanvas.style.cursor = 'crosshair';
+                selectedItem = null; // Deseleccionar al cambiar a herramienta de creación
+                openPanel();
+            } else {
+                drawCanvas.style.cursor = 'default';
+            }
+            redrawOverlay();
+        }
+
+        // --- INTERACCIÓN CANVAS ---
+        drawCanvas.addEventListener('mousedown', (e) => {
+            if (e.ctrlKey || isPanMode) {
+                isDragging = true;
+                dragStartX = e.clientX;
+                dragStartY = e.clientY;
+                scrollStartX = viewportTransform.x;
+                scrollStartY = viewportTransform.y;
+                drawCanvas.style.cursor = 'grabbing';
+                return; // Bloquea el uso de herramientas si estamos paneando
+            }
+
+            const rect = container.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            // Traslación exacta teniendo en cuenta el pan y el zoom
+            const x = (mouseX - viewportTransform.x) / viewportTransform.scale;
+            const y = (mouseY - viewportTransform.y) / viewportTransform.scale;
+
+            if (activeTool === 'select') {
+                const clickedItem = checkHit(x, y);
+                selectedItem = clickedItem;
+                openPanel();
+                redrawOverlay();
+            } 
+            else if (activeTool === 'point') {
+                const newPoint = {
+                    id: Date.now().toString(),
+                    x: x,
+                    y: y,
+                    num: appState.nextPointNum++,
+                    color: '#ef4444', // Rojo por defecto
+                    images: []
+                };
+                appState.points.push(newPoint);
+                selectedItem = { type: 'point', id: newPoint.id };
+                openPanel(); // Actualiza el panel sin cambiar la herramienta
+                redrawOverlay();
+            } 
+            else if (activeTool === 'measure') {
+                if (!measureStart) {
+                    measureStart = { x, y };
+                } else {
+                    const newMeasure = {
+                        id: Date.now().toString(),
+                        x1: measureStart.x,
+                        y1: measureStart.y,
+                        x2: x,
+                        y2: y,
+                        text: "0.00",
+                        color: '#3b82f6'
+                    };
+                    appState.measurements.push(newMeasure);
+                    measureStart = null;
+                    selectedItem = { type: 'measure', id: newMeasure.id };
+                    openPanel(); // Actualiza el panel sin cambiar la herramienta
+                    redrawOverlay();
+                }
+            }
+        });
+
+        drawCanvas.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const dx = e.clientX - dragStartX;
+                const dy = e.clientY - dragStartY;
+                viewportTransform.x = scrollStartX + dx;
+                viewportTransform.y = scrollStartY + dy;
+                applyZoom();
+                return;
+            }
+
+            if (activeTool === 'measure' && measureStart) {
+                const rect = container.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+                
+                const x = (mouseX - viewportTransform.x) / viewportTransform.scale;
+                const y = (mouseY - viewportTransform.y) / viewportTransform.scale;
+                
+                redrawOverlay();
+                
+                drawCtx.beginPath();
+                drawCtx.moveTo(measureStart.x, measureStart.y);
+                drawCtx.lineTo(x, y);
+                drawCtx.strokeStyle = 'rgba(59, 130, 246, 0.8)';
+                drawCtx.lineWidth = 2;
+                drawCtx.setLineDash([5, 5]);
+                drawCtx.stroke();
+                drawCtx.setLineDash([]);
+            }
+        });
+
+        function checkHit(x, y) {
+            for (let p of appState.points) {
+                const dist = Math.sqrt(Math.pow(p.x - x, 2) + Math.pow(p.y - y, 2));
+                if (dist <= 20) return { type: 'point', id: p.id };
+            }
+            for (let m of appState.measurements) {
+                const l2 = Math.pow(m.x1 - m.x2, 2) + Math.pow(m.y1 - m.y2, 2);
+                if (l2 === 0) continue;
+                let t = ((x - m.x1) * (m.x2 - m.x1) + (y - m.y1) * (m.y2 - m.y1)) / l2;
+                t = Math.max(0, Math.min(1, t));
+                const distToSegment = Math.sqrt(Math.pow(x - (m.x1 + t * (m.x2 - m.x1)), 2) + Math.pow(y - (m.y1 + t * (m.y2 - m.y1)), 2));
+                if (distToSegment <= 15) return { type: 'measure', id: m.id };
+            }
+            return null;
+        }
+
+        function redrawOverlay() {
+            drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+            
+            // Dibujar medidas
+            appState.measurements.forEach(m => {
+                const isSelected = selectedItem && selectedItem.id === m.id;
+                const mColor = m.color || '#3b82f6';
+                
+                drawCtx.beginPath();
+                drawCtx.moveTo(m.x1, m.y1);
+                drawCtx.lineTo(m.x2, m.y2);
+                drawCtx.strokeStyle = isSelected ? '#111827' : mColor;
+                drawCtx.lineWidth = isSelected ? 3 : 2;
+                drawCtx.stroke();
+                
+                drawCtx.beginPath();
+                drawCtx.arc(m.x1, m.y1, 4, 0, 2*Math.PI);
+                drawCtx.arc(m.x2, m.y2, 4, 0, 2*Math.PI);
+                drawCtx.fillStyle = mColor;
+                drawCtx.fill();
+
+                if (m.text) {
+                    const cx = (m.x1 + m.x2) / 2;
+                    const cy = (m.y1 + m.y2) / 2;
+                    
+                    drawCtx.font = "bold 14px monospace";
+                    const textWidth = drawCtx.measureText(m.text).width;
+                    
+                    drawCtx.fillStyle = 'rgba(255,255,255,0.9)';
+                    drawCtx.fillRect(cx - textWidth/2 - 4, cy - 10, textWidth + 8, 20);
+                    
+                    drawCtx.fillStyle = isSelected ? '#111827' : mColor;
+                    drawCtx.textAlign = 'center';
+                    drawCtx.textBaseline = 'middle';
+                    drawCtx.fillText(m.text, cx, cy);
+                }
+            });
+
+            // Dibujar Puntos
+            appState.points.forEach(p => {
+                const isSelected = selectedItem && selectedItem.id === p.id;
+                const pointColor = p.color || '#ef4444';
+                
+                drawCtx.beginPath();
+                drawCtx.arc(p.x, p.y, 14, 0, 2 * Math.PI);
+                drawCtx.fillStyle = pointColor;
+                drawCtx.fill();
+                
+                if(isSelected) {
+                    drawCtx.lineWidth = 3;
+                    drawCtx.strokeStyle = '#111827'; // Borde oscuro si está seleccionado
+                } else {
+                    drawCtx.lineWidth = 2;
+                    drawCtx.strokeStyle = '#ffffff';
+                }
+                drawCtx.stroke();
+                
+                drawCtx.fillStyle = '#ffffff';
+                drawCtx.font = "bold 14px monospace";
+                drawCtx.textAlign = "center";
+                drawCtx.textBaseline = "middle";
+                drawCtx.fillText(p.num, p.x, p.y + 1); // +1 para centrar opticamente
+            });
+        }
+
+        // --- PANEL DERECHO ---
+        function openPanel() {
+            rightPanel.classList.remove('hidden');
+            rightPanel.classList.add('flex');
+            const content = document.getElementById('panel-content');
+            const title = document.getElementById('panel-title');
+            
+            if (!selectedItem) {
+                title.textContent = "PROPIEDADES";
+                content.innerHTML = '<p class="text-sm text-gray-500 text-center mt-10">USA LA HERRAMIENTA DE SELECCIÓN PARA EDITAR UN ELEMENTO.</p>';
+                return;
+            }
+
+            if (selectedItem.type === 'point') {
+                const pt = appState.points.find(p => p.id === selectedItem.id);
+                if(!pt) return;
+                title.textContent = `PUNTO #${pt.num}`;
+                
+                let html = `
+                    <div class="mb-4 flex items-center justify-between border-b pb-4">
+                        <label class="block text-sm font-bold text-gray-700">COLOR DEL PUNTO:</label>
+                        <input type="color" value="${pt.color || '#ef4444'}" onchange="updatePointColor('${pt.id}', this.value)">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-bold text-gray-700 mb-2">AÑADIR IMÁGENES</label>
+                        <input type="file" multiple accept="image/*" onchange="handleImageUpload(event, '${pt.id}')" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 uppercase font-mono">
+                    </div>
+                    ${pt.images.length > 0 ? `
+                        <button onclick="openImageViewer('${pt.id}')" class="w-full mb-4 bg-arch-800 text-white hover:bg-arch-900 py-2 rounded text-sm transition uppercase font-bold tracking-wider shadow-sm flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                            Ver Imágenes
+                        </button>
+                    ` : ''}
+                    <div class="grid grid-cols-2 gap-2 mt-2" id="gallery-${pt.id}">
+                `;
+                
+                pt.images.forEach(img => {
+                    html += `
+                        <div class="relative group rounded overflow-hidden border border-gray-200">
+                            <img src="${img.data}" class="w-full h-24 object-cover" alt="Foto">
+                            <button onclick="deleteImage('${pt.id}', '${img.id}')" class="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
+                    `;
+                });
+                
+                html += `</div>
+                <div class="mt-8 pt-4 border-t border-gray-200">
+                    <button onclick="deletePoint('${pt.id}')" class="w-full text-red-600 border border-red-200 hover:bg-red-50 py-2 rounded text-sm transition uppercase font-bold tracking-wider">Eliminar Punto</button>
+                </div>`;
+                content.innerHTML = html;
+            } 
+            else if (selectedItem.type === 'measure') {
+                const m = appState.measurements.find(m => m.id === selectedItem.id);
+                if(!m) return;
+                title.textContent = "COTA / MEDIDA";
+                
+                content.innerHTML = `
+                    <div class="mb-4 flex items-center justify-between border-b pb-4">
+                        <label class="block text-sm font-bold text-gray-700">COLOR DE LA COTA:</label>
+                        <input type="color" value="${m.color || '#3b82f6'}" onchange="updateMeasureColor('${m.id}', this.value)">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-bold text-gray-700 mb-2">DISTANCIA</label>
+                        <input type="text" id="measure-input-${m.id}" value="${m.text}" class="w-full border border-gray-300 rounded-md p-2 focus:ring-arch-800 focus:border-arch-800 outline-none text-sm font-mono mb-2">
+                        <button onclick="confirmMeasure('${m.id}')" class="w-full bg-arch-800 text-white hover:bg-arch-900 py-2 rounded text-sm transition uppercase font-bold tracking-wider">Confirmar Medida</button>
+                    </div>
+                    <div class="mt-8 pt-4 border-t border-gray-200">
+                        <button onclick="deleteMeasure('${m.id}')" class="w-full text-red-600 border border-red-200 hover:bg-red-50 py-2 rounded text-sm transition uppercase font-bold tracking-wider">Eliminar Cota</button>
+                    </div>
+                `;
+            }
+        }
+
+        function closePanel() {
+            rightPanel.classList.add('hidden');
+            rightPanel.classList.remove('flex');
+            selectedItem = null;
+            redrawOverlay();
+        }
+
+        function updatePointColor(pointId, color) {
+            const pt = appState.points.find(p => p.id === pointId);
+            if(pt) {
+                pt.color = color;
+                redrawOverlay();
+            }
+        }
+
+        function updateMeasureColor(measureId, color) {
+            const m = appState.measurements.find(x => x.id === measureId);
+            if(m) {
+                m.color = color;
+                redrawOverlay();
+            }
+        }
+
+        function handleImageUpload(event, pointId) {
+            const files = event.target.files;
+            const pt = appState.points.find(p => p.id === pointId);
+            if(!pt || !files.length) return;
+
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    pt.images.push({
+                        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                        data: e.target.result
+                    });
+                    openPanel(); 
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function deleteImage(pointId, imageId) {
+            const pt = appState.points.find(p => p.id === pointId);
+            if(pt) {
+                pt.images = pt.images.filter(i => i.id !== imageId);
+                openPanel();
+            }
+        }
+
+        function deletePoint(pointId) {
+            appState.points = appState.points.filter(p => p.id !== pointId);
+            selectedItem = null;
+            openPanel();
+            redrawOverlay();
+        }
+
+        function confirmMeasure(measureId) {
+            const m = appState.measurements.find(m => m.id === measureId);
+            const inputVal = document.getElementById(`measure-input-${measureId}`).value;
+            if(m) {
+                m.text = inputVal;
+                showMessage("MEDIDA CONFIRMADA");
+                redrawOverlay();
+            }
+        }
+
+        function deleteMeasure(measureId) {
+            appState.measurements = appState.measurements.filter(m => m.id !== measureId);
+            selectedItem = null;
+            openPanel();
+            redrawOverlay();
+        }
+
+        function exitToMenu() {
+            // Limpiar estado
+            appState = { project: { name: "", date: "" }, pdfBase64: null, points: [], measurements: [], nextPointNum: 1 };
+            pdfDoc = null;
+            viewportTransform = { x: 0, y: 0, scale: 1 };
+            selectedItem = null;
+            
+            // Limpiar visuales
+            pdfCtx.clearRect(0, 0, pdfCanvas.width, pdfCanvas.height);
+            drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+            document.getElementById('proj-name').value = '';
+            document.getElementById('proj-date').value = '';
+            document.getElementById('proj-pdf').value = '';
+            document.getElementById('project-selector').value = '';
+            
+            closePanel();
+            
+            // Mostrar inicio
+            document.getElementById('main-app').classList.add('hidden');
+            const startScreen = document.getElementById('start-screen');
+            startScreen.style.display = 'flex';
+            setTimeout(() => {
+                startScreen.classList.remove('opacity-0', 'pointer-events-none');
+            }, 50);
+        }
+
+        // --- GUARDAR / CARGAR (JSON) ---
+        function saveProject() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", `${appState.project.name.replace(/\s+/g, '_')}_data.json`);
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+            showMessage("PROYECTO GUARDADO");
+        }
+
+        document.getElementById('btn-select-dir').addEventListener('click', async () => {
+            try {
+                const dirHandle = await window.showDirectoryPicker({
+                    id: 'proyectos_dir',
+                    mode: 'read'
+                });
+                
+                projectHandles = {};
+                const selector = document.getElementById('project-selector');
+                selector.innerHTML = '<option value="">-- Selecciona un proyecto --</option>';
+                
+                for await (const entry of dirHandle.values()) {
+                    if (entry.kind === 'file' && entry.name.endsWith('.json')) {
+                        projectHandles[entry.name] = entry;
+                        const option = document.createElement('option');
+                        option.value = entry.name;
+                        option.textContent = entry.name;
+                        selector.appendChild(option);
+                    }
+                }
+                
+                selector.classList.remove('hidden');
+                showMessage("CARPETA CARGADA. SELECCIONA UN PROYECTO.");
+            } catch (err) {
+                console.error(err);
+                if(err.name !== "AbortError") {
+                    showMessage("ERROR AL ACCEDER A LA CARPETA.");
+                }
+            }
+        });
+
+        document.getElementById('project-selector').addEventListener('change', async (e) => {
+            const fileName = e.target.value;
+            if (!fileName) return;
+            
+            try {
+                const fileHandle = projectHandles[fileName];
+                const file = await fileHandle.getFile();
+                const text = await file.text();
+                
+                const loadedState = JSON.parse(text);
+                appState = loadedState;
+                
+                document.getElementById('proj-name').value = appState.project.name;
+                document.getElementById('proj-date').value = appState.project.date;
+                document.getElementById('display-proj-name').textContent = appState.project.name;
+                document.getElementById('display-proj-date').textContent = appState.project.date;
+                
+                showMessage("PROYECTO CARGADO CON ÉXITO");
+
+                if (appState.pdfBase64) {
+                    await renderPDF(appState.pdfBase64);
+                    startGame();
+                }
+            } catch (err) {
+                console.error(err);
+                showMessage("ERROR AL CARGAR EL PROYECTO.");
+            }
+        });
+
+        // --- GENERAR REPORTE (PDF) ---
+        async function generateReport() {
+            try {
+                showMessage("GENERANDO INFORME...");
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = pdfCanvas.width;
+                tempCanvas.height = pdfCanvas.height;
+                const tCtx = tempCanvas.getContext('2d');
+                
+                tCtx.drawImage(pdfCanvas, 0, 0);
+                
+                const tempSelected = selectedItem;
+                selectedItem = null;
+                redrawOverlay();
+                
+                tCtx.drawImage(drawCanvas, 0, 0);
+                
+                selectedItem = tempSelected;
+                redrawOverlay();
+
+                const combinedImgData = tempCanvas.toDataURL('image/jpeg', 0.8);
+                
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                
+                pdf.setFont("courier", "bold");
+                pdf.setFontSize(22);
+                pdf.text("INFORME DE VISITA DE OBRA", 10, 20);
+                pdf.setFontSize(12);
+                pdf.text(`PROYECTO: ${appState.project.name.toUpperCase()}`, 10, 30);
+                pdf.text(`FECHA: ${appState.project.date}`, 10, 38);
+                
+                const imgRatio = tempCanvas.height / tempCanvas.width;
+                let renderWidth = pageWidth - 20;
+                let renderHeight = renderWidth * imgRatio;
+                
+                if (renderHeight > pageHeight - 50) {
+                    renderHeight = pageHeight - 50;
+                    renderWidth = renderHeight / imgRatio;
+                }
+                
+                pdf.addImage(combinedImgData, 'JPEG', 10, 45, renderWidth, renderHeight);
+                
+                const pointsWithImages = appState.points.filter(p => p.images.length > 0);
+                pointsWithImages.sort((a,b) => a.num - b.num);
+
+                for (const p of pointsWithImages) {
+                    pdf.addPage();
+                    pdf.setFontSize(16);
+                    pdf.text(`PUNTO DE INSPECCIÓN #${p.num}`, 10, 20);
+                    
+                    let yOffset = 30;
+                    for (let i = 0; i < p.images.length; i++) {
+                        const imgData = p.images[i].data;
+                        
+                        if (yOffset > 210) {
+                            pdf.addPage();
+                            yOffset = 20;
+                        }
+                        
+                        pdf.addImage(imgData, 'JPEG', 10, yOffset, 120, 80);
+                        yOffset += 90;
+                    }
+                }
+                
+                pdf.save(`INFORME_${appState.project.name.replace(/\s+/g, '_')}.pdf`);
+                
+            } catch (err) {
+                console.error("Error generando PDF: ", err);
+                showMessage("ERROR AL GENERAR EL INFORME.");
+            }
+        }
+
+        // --- LÓGICA DEL VISOR DE IMÁGENES ---
+        let viewerPoint = null;
+        let viewerIndex = 0;
+
+        function openImageViewer(pointId) {
+            const pt = appState.points.find(p => p.id === pointId);
+            if (!pt || pt.images.length === 0) return;
+            
+            viewerPoint = pt;
+            viewerIndex = 0;
+            updateViewer();
+            document.getElementById('image-viewer').classList.remove('hidden');
+        }
+
+        function closeImageViewer() {
+            document.getElementById('image-viewer').classList.add('hidden');
+            viewerPoint = null;
+        }
+
+        function updateViewer() {
+            if (!viewerPoint) return;
+            const imgEl = document.getElementById('viewer-img');
+            const countEl = document.getElementById('viewer-count');
+            
+            imgEl.src = viewerPoint.images[viewerIndex].data;
+            countEl.textContent = `${viewerIndex + 1} / ${viewerPoint.images.length}`;
+        }
+
+        function viewerNext() {
+            if (!viewerPoint) return;
+            viewerIndex = (viewerIndex + 1) % viewerPoint.images.length;
+            updateViewer();
+        }
+
+        function viewerPrev() {
+            if (!viewerPoint) return;
+            viewerIndex = (viewerIndex - 1 + viewerPoint.images.length) % viewerPoint.images.length;
+            updateViewer();
+        }
+    </script>
+</body>
+</html>
