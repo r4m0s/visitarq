@@ -45,7 +45,7 @@
             overflow: hidden;
             width: 100%;
             height: 100%;
-            background-color: #e5e7eb;
+            background-color: #d1d5db;
             touch-action: none;
         }
         
@@ -103,25 +103,24 @@
                     <label class="block text-sm font-bold text-gray-700 mb-1">CARGAR PLANO (PDF)</label>
                     <input type="file" id="proj-pdf" accept=".pdf" class="w-full border border-gray-300 rounded-md p-2 text-sm font-mono cursor-pointer">
                 </div>
-                <button id="btn-start" class="w-full mt-4 bg-arch-900 text-white font-bold py-3 px-4 rounded-md uppercase">Comenzar Visita</button>
+                <button id="btn-start" class="w-full mt-4 bg-arch-900 text-white font-bold py-3 px-4 rounded-md uppercase hover:bg-arch-800 transition-colors">Comenzar Visita</button>
             </div>
 
             <div class="mt-8 pt-6 border-t border-gray-200">
                 <h2 class="text-lg font-bold mb-4 text-arch-900 uppercase">CARGAR PROYECTO</h2>
                 <div class="flex flex-col gap-2">
-                    <button id="btn-select-dir" class="w-full bg-arch-800 text-white font-bold py-2 px-4 rounded-md text-xs uppercase">Elegir Carpeta</button>
-                    <select id="project-selector" class="w-full border border-gray-300 rounded-md p-2 hidden mt-2"></select>
+                    <button id="btn-select-dir" class="w-full bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-md text-sm uppercase hover:bg-gray-300">Cargar Archivo JSON</button>
+                    <input type="file" id="load-json" accept=".json" class="hidden">
                 </div>
             </div>
         </div>
     </div>
 
     <!-- VISTA PRINCIPAL -->
-    <!-- Mobile: Col (Canvas -> Propiedades -> Tools). Desktop: Row (Tools -> Canvas -> Propiedades) -->
-    <div id="main-app" class="flex-1 flex flex-col md:flex-row overflow-hidden hidden">
+    <div id="main-app" class="flex-1 flex flex-col md:flex-row w-full h-full overflow-hidden hidden">
         
         <!-- Área Central (Plano) -->
-        <div id="canvas-container" class="flex-1 relative z-10 order-1 md:order-2">
+        <div id="canvas-container" class="order-1 md:order-2 flex-1 min-h-0 relative z-10 bg-gray-300 touch-none">
             <div class="canvas-wrapper" id="canvas-wrapper">
                 <canvas id="pdf-canvas"></canvas>
                 <canvas id="draw-canvas"></canvas>
@@ -129,8 +128,8 @@
         </div>
 
         <!-- Panel de Propiedades (Entre el canvas y las herramientas en móvil, a la derecha en Desktop) -->
-        <div id="right-panel" class="w-full md:w-80 flex-shrink-0 bg-white border-t md:border-t-0 md:border-l border-gray-200 shadow-sm z-30 order-2 md:order-3 hidden flex-col max-h-[40vh] md:max-h-none overflow-hidden">
-            <div class="p-3 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+        <div id="right-panel" class="order-2 md:order-3 w-full md:w-80 h-[35vh] md:h-full flex-shrink-0 bg-white border-t md:border-t-0 md:border-l border-gray-200 shadow-sm z-30 hidden flex-col">
+            <div class="p-3 border-b border-gray-200 flex justify-between items-center bg-gray-50 flex-shrink-0">
                 <h3 id="panel-title" class="font-bold text-gray-800 uppercase text-sm">PROPIEDADES</h3>
                 <button onclick="closePanel()" class="text-gray-500 hover:text-gray-800">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -142,54 +141,56 @@
         </div>
 
         <!-- Menú / Barra de Herramientas (Abajo en móvil, Izquierda en Desktop) -->
-        <div class="w-full md:w-64 flex-shrink-0 bg-white border-t md:border-t-0 md:border-r border-gray-200 flex flex-row md:flex-col shadow-sm z-40 order-3 md:order-1 overflow-x-auto md:overflow-hidden h-16 md:h-auto">
+        <div class="order-3 md:order-1 w-full md:w-64 h-auto md:h-full flex-shrink-0 bg-white border-t md:border-t-0 md:border-r border-gray-200 flex flex-row md:flex-col shadow-sm z-40 overflow-x-auto md:overflow-y-auto">
             <div class="p-4 border-b border-gray-200 hidden md:block">
                 <h2 id="display-proj-name" class="font-bold text-gray-800 truncate uppercase">PROYECTO</h2>
                 <p id="display-proj-date" class="text-xs text-gray-500">FECHA</p>
             </div>
             
-            <div class="flex-1 flex flex-row md:flex-col py-0 md:py-2 min-w-max md:min-w-0 md:overflow-y-auto items-center md:items-stretch">
-                <button onclick="setTool('select')" id="tool-select" class="tool-btn active md:w-full px-4 py-3 text-sm flex flex-col md:flex-row items-center gap-1 md:gap-3 md:border-l-4 border-b-4 md:border-b-0 border-transparent uppercase">
+            <div class="flex-1 flex flex-row md:flex-col py-2 min-w-max md:min-w-0 items-center md:items-stretch">
+                <button onclick="setTool('select')" id="tool-select" class="tool-btn active md:w-full px-4 py-2 text-sm flex flex-col md:flex-row items-center gap-1 md:gap-3 md:border-l-4 border-b-4 md:border-b-0 border-transparent uppercase">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
                     <span class="text-[10px] md:text-sm">Selección</span>
                 </button>
-                <button onclick="setTool('point')" id="tool-point" class="tool-btn md:w-full px-4 py-3 text-sm flex flex-col md:flex-row items-center gap-1 md:gap-3 md:border-l-4 border-b-4 md:border-b-0 border-transparent uppercase">
+                <button onclick="setTool('point')" id="tool-point" class="tool-btn md:w-full px-4 py-2 text-sm flex flex-col md:flex-row items-center gap-1 md:gap-3 md:border-l-4 border-b-4 md:border-b-0 border-transparent uppercase">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                     <span class="text-[10px] md:text-sm">Punto</span>
                 </button>
-                <button onclick="setTool('measure')" id="tool-measure" class="tool-btn md:w-full px-4 py-3 text-sm flex flex-col md:flex-row items-center gap-1 md:gap-3 md:border-l-4 border-b-4 md:border-b-0 border-transparent uppercase">
+                <button onclick="setTool('measure')" id="tool-measure" class="tool-btn md:w-full px-4 py-2 text-sm flex flex-col md:flex-row items-center gap-1 md:gap-3 md:border-l-4 border-b-4 md:border-b-0 border-transparent uppercase">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5.5 5.5M20 16v4m0 0h-4m4 0l-5.5-5.5M4 16v4m0 0h4m-4 0l5.5-5.5M20 8V4m0 0h-4m4 0l-5.5 5.5"></path></svg>
                     <span class="text-[10px] md:text-sm">Acotar</span>
                 </button>
                 
                 <div class="h-8 w-px bg-gray-300 my-auto mx-2 md:hidden"></div>
                 
-                <button onclick="generateReport()" class="md:w-full md:mt-auto px-4 py-2 flex flex-col md:flex-row items-center justify-center gap-1 text-xs uppercase font-bold hover:bg-gray-100">
-                    <svg class="w-5 h-5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                    <span class="text-[10px] md:text-xs">Informe</span>
-                </button>
-                <button onclick="saveProject()" class="md:w-full px-4 py-2 flex flex-col md:flex-row items-center justify-center gap-1 text-xs uppercase font-bold text-arch-900 hover:bg-gray-100 md:bg-arch-900 md:text-white md:hover:bg-gray-800 md:m-2 md:rounded">
-                    <svg class="w-5 h-5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
-                    <span class="text-[10px] md:text-xs">Guardar</span>
-                </button>
-                <button onclick="exitToMenu()" class="md:w-full px-4 py-2 flex flex-col md:flex-row items-center justify-center gap-1 text-xs uppercase font-bold text-red-600 hover:bg-red-50 md:m-2 md:border md:border-red-200 md:rounded">
-                    <svg class="w-5 h-5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                    <span class="text-[10px] md:text-xs">Salir</span>
-                </button>
+                <div class="flex-1 md:mt-auto flex flex-row md:flex-col gap-2 p-2">
+                    <button onclick="generateReport()" class="w-auto md:w-full px-4 py-2 flex flex-col md:flex-row items-center justify-center gap-1 text-[10px] md:text-xs uppercase font-bold hover:bg-gray-100 rounded border border-gray-200 md:border-0 md:border-t">
+                        <svg class="w-5 h-5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        <span>Informe</span>
+                    </button>
+                    <button onclick="saveProject()" class="w-auto md:w-full px-4 py-2 flex flex-col md:flex-row items-center justify-center gap-1 text-[10px] md:text-xs uppercase font-bold text-white bg-arch-900 hover:bg-arch-800 rounded">
+                        <svg class="w-5 h-5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                        <span>Guardar</span>
+                    </button>
+                    <button onclick="exitToMenu()" class="w-auto md:w-full px-4 py-2 flex flex-col md:flex-row items-center justify-center gap-1 text-[10px] md:text-xs uppercase font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded">
+                        <svg class="w-5 h-5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                        <span>Salir</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Visor Modal -->
+    <!-- Visor Modal de Imágenes -->
     <div id="image-viewer" class="fixed inset-0 z-[120] bg-black bg-opacity-95 hidden flex-col">
         <div class="p-4 flex justify-between items-center text-white">
             <div id="viewer-count" class="font-mono text-sm font-bold bg-gray-800 px-3 py-1 rounded">1 / 1</div>
             <button onclick="closeImageViewer()" class="text-white hover:text-red-400 p-2"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
         </div>
         <div class="flex-1 flex items-center justify-center relative px-2">
-            <button onclick="viewerPrev()" class="absolute left-2 text-white bg-gray-800 bg-opacity-50 rounded-full p-2"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></button>
+            <button onclick="viewerPrev()" class="absolute left-2 text-white bg-gray-800 bg-opacity-50 rounded-full p-2 z-10"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></button>
             <img id="viewer-img" src="" class="max-w-full max-h-[80vh] object-contain rounded">
-            <button onclick="viewerNext()" class="absolute right-2 text-white bg-gray-800 bg-opacity-50 rounded-full p-2"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>
+            <button onclick="viewerNext()" class="absolute right-2 text-white bg-gray-800 bg-opacity-50 rounded-full p-2 z-10"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>
         </div>
     </div>
 
@@ -204,10 +205,10 @@
         const drawCanvas = document.getElementById('draw-canvas'), drawCtx = drawCanvas.getContext('2d');
         const container = document.getElementById('canvas-container');
 
-        // Setup inicial
+        // Setup inicial y carga de PDF / JSON
         document.getElementById('btn-start').addEventListener('click', async () => {
             const file = document.getElementById('proj-pdf').files[0];
-            if(!file) return alert("Carga un PDF");
+            if(!file) return alert("Carga un plano en PDF");
             appState.project.name = document.getElementById('proj-name').value || "Proyecto";
             appState.project.date = document.getElementById('proj-date').value || new Date().toISOString().split('T')[0];
             const reader = new FileReader();
@@ -216,6 +217,25 @@
                 loadProjectToUI();
             };
             reader.readAsDataURL(file);
+        });
+
+        document.getElementById('btn-select-dir').addEventListener('click', () => {
+            document.getElementById('load-json').click();
+        });
+
+        document.getElementById('load-json').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                try {
+                    appState = JSON.parse(ev.target.result);
+                    loadProjectToUI();
+                } catch(e) {
+                    alert("Error leyendo el archivo del proyecto.");
+                }
+            };
+            reader.readAsText(file);
         });
 
         function loadProjectToUI() {
@@ -242,7 +262,7 @@
 
             await page.render({ canvasContext: pdfCtx, viewport: viewport }).promise;
             
-            // Auto-fit initial
+            // Auto-fit inicial
             const containerRect = container.getBoundingClientRect();
             const scaleX = containerRect.width / baseWidth;
             const scaleY = containerRect.height / baseHeight;
@@ -257,7 +277,7 @@
             document.getElementById('canvas-wrapper').style.transform = `translate(${viewportTransform.x}px, ${viewportTransform.y}px) scale(${viewportTransform.scale})`;
         }
 
-        // Interacciones Mouse
+        // Interacciones de navegación (Zoom y Paneo)
         container.addEventListener('wheel', (e) => {
             e.preventDefault();
             const rect = container.getBoundingClientRect();
@@ -274,7 +294,6 @@
         window.addEventListener('keydown', e => { if(e.key === 'Control') isPanMode = true; });
         window.addEventListener('keyup', e => { if(e.key === 'Control') isPanMode = false; });
 
-        // Touch e interacciones unificadas
         function getEventPoint(e) {
             const rect = container.getBoundingClientRect();
             let clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -319,9 +338,7 @@
             applyZoom();
         }
 
-        function handleEnd(e) {
-            isDragging = false; initialPinchDist = null;
-        }
+        function handleEnd(e) { isDragging = false; initialPinchDist = null; }
 
         container.addEventListener('mousedown', handleStart);
         container.addEventListener('mousemove', handleMove);
@@ -330,7 +347,7 @@
         container.addEventListener('touchmove', handleMove, {passive:false});
         container.addEventListener('touchend', handleEnd);
 
-        // Lógica de canvas
+        // Lógica de dibujo (Puntos y Cotas)
         drawCanvas.addEventListener('click', (e) => {
             if(isPanMode || isDragging) return;
             const rect = container.getBoundingClientRect();
@@ -359,14 +376,12 @@
         function getHitItem(x, y) {
             const th = 20 / viewportTransform.scale;
             for(let p of appState.points) { if(Math.hypot(p.x-x, p.y-y) < th) return {type:'point', item:p}; }
-            // Measure hit detection omitted for brevity, focusing on points logic
             return null;
         }
 
         function redraw() {
             drawCtx.clearRect(0, 0, baseWidth, baseHeight);
             
-            // Medidas
             appState.measurements.forEach(m => {
                 drawCtx.beginPath(); drawCtx.moveTo(m.x1, m.y1); drawCtx.lineTo(m.x2, m.y2);
                 drawCtx.strokeStyle = m.color; drawCtx.lineWidth = 4; drawCtx.stroke();
@@ -376,7 +391,6 @@
                 }
             });
 
-            // Puntos
             appState.points.forEach(p => {
                 drawCtx.beginPath(); drawCtx.arc(p.x, p.y, 15, 0, Math.PI*2);
                 drawCtx.fillStyle = p.color; drawCtx.fill();
@@ -393,10 +407,11 @@
             const btn = document.getElementById(`tool-${t}`);
             btn.classList.add('active');
             if(window.innerWidth >= 768) btn.classList.add('border-arch-900');
-            else btn.classList.replace('border-transparent', 'border-arch-900'); // mobile bottom border
+            else btn.classList.replace('border-transparent', 'border-arch-900');
             
             if(t === 'point') showPanelForNew('point');
             else if(t === 'measure') showPanelForNew('measure');
+            else if(t === 'select') closePanel();
         }
 
         function showPanelForNew(type) {
@@ -405,14 +420,14 @@
             const cont = document.getElementById('panel-content');
             if(type === 'point') {
                 cont.innerHTML = `
-                    <p class="font-bold mb-2">Configurar Nuevo Punto</p>
-                    <div class="flex items-center gap-4"><label>Color:</label><input type="color" id="color-point" value="#ef4444"></div>
-                    <p class="text-xs text-gray-500 mt-2">Haz clic en el plano.</p>`;
+                    <p class="font-bold mb-2 uppercase text-sm">Nuevo Punto</p>
+                    <div class="flex items-center gap-4 border border-gray-200 p-2 rounded"><label class="text-xs">Color:</label><input type="color" id="color-point" value="#ef4444"></div>
+                    <p class="text-xs text-gray-500 mt-3">Haz clic en el plano para colocar.</p>`;
             } else {
                 cont.innerHTML = `
-                    <p class="font-bold mb-2">Configurar Nueva Cota</p>
-                    <div class="flex items-center gap-4"><label>Color:</label><input type="color" id="color-measure" value="#3b82f6"></div>
-                    <p class="text-xs text-gray-500 mt-2">Haz clic en 2 puntos.</p>`;
+                    <p class="font-bold mb-2 uppercase text-sm">Nueva Cota</p>
+                    <div class="flex items-center gap-4 border border-gray-200 p-2 rounded"><label class="text-xs">Color:</label><input type="color" id="color-measure" value="#3b82f6"></div>
+                    <p class="text-xs text-gray-500 mt-3">Haz clic en 2 puntos para acotar.</p>`;
             }
         }
 
@@ -424,36 +439,55 @@
             
             if(hit.type === 'point') {
                 const p = hit.item;
+                
+                // Generar miniaturas de imágenes
+                let thumbnailsHtml = '';
+                if(p.images.length > 0) {
+                    thumbnailsHtml = `<div class="grid grid-cols-3 gap-2 mb-4">`;
+                    p.images.forEach((imgSrc, idx) => {
+                        thumbnailsHtml += `
+                            <div class="relative group cursor-pointer aspect-square bg-gray-100 rounded border border-gray-200 overflow-hidden shadow-sm">
+                                <img src="${imgSrc}" class="w-full h-full object-cover" onclick="openViewer(${p.id}, ${idx})">
+                                <button onclick="deleteImage(${p.id}, ${idx}); event.stopPropagation();" class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow hover:bg-red-600 transition-colors">&times;</button>
+                            </div>
+                        `;
+                    });
+                    thumbnailsHtml += `</div>`;
+                }
+
                 cont.innerHTML = `
-                    <h4 class="font-bold mb-4">Punto #${p.num}</h4>
-                    <div class="flex items-center gap-4 mb-4">
-                        <label>Color:</label>
+                    <div class="flex justify-between items-center mb-4 border-b pb-2">
+                        <h4 class="font-bold text-lg uppercase">Punto #${p.num}</h4>
+                    </div>
+                    <div class="flex items-center gap-4 mb-4 border border-gray-100 p-2 rounded bg-gray-50">
+                        <label class="text-xs font-bold uppercase">Color de Marca:</label>
                         <input type="color" id="edit-color" value="${p.color}" onchange="updatePointColor(${p.id}, this.value)">
                     </div>
-                    <p class="text-sm font-bold mb-2">Imágenes (${p.images.length})</p>
-                    <div class="flex gap-2 mb-4">
-                        <!-- Botón Galería -->
-                        <label class="flex-1 bg-gray-100 hover:bg-gray-200 text-center py-2 rounded cursor-pointer text-xs font-bold uppercase">
-                            Galería
+                    
+                    <p class="text-xs font-bold mb-2 uppercase text-gray-700">Imágenes (${p.images.length})</p>
+                    ${thumbnailsHtml}
+                    
+                    <div class="flex flex-col gap-2 mb-4">
+                        <label class="w-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-800 text-center py-2 px-3 rounded cursor-pointer text-xs font-bold uppercase shadow-sm transition-colors">
+                            Subir desde Galería
                             <input type="file" accept="image/*" multiple class="hidden" onchange="addImages(event, ${p.id})">
                         </label>
-                        <!-- Botón Cámara -->
-                        <label class="flex-1 bg-arch-100 hover:bg-arch-200 text-arch-800 text-center py-2 rounded cursor-pointer text-xs font-bold uppercase">
-                            Cámara
+                        <label class="w-full bg-arch-100 border border-arch-200 hover:bg-arch-200 text-arch-900 text-center py-2 px-3 rounded cursor-pointer text-xs font-bold uppercase shadow-sm transition-colors flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            Usar Cámara
                             <input type="file" accept="image/*" capture="environment" class="hidden" onchange="addImages(event, ${p.id})">
                         </label>
                     </div>
-                    ${p.images.length > 0 ? `<button onclick="openViewer(${p.id})" class="w-full bg-arch-900 text-white py-2 rounded text-sm uppercase font-bold">Ver Imágenes</button>` : ''}
                 `;
             } else if(hit.type === 'measure') {
                 const m = hit.item;
                 cont.innerHTML = `
-                    <h4 class="font-bold mb-4">Cota</h4>
+                    <h4 class="font-bold mb-4 uppercase">Propiedades de Cota</h4>
                     <div class="mb-4">
-                        <label class="block text-sm mb-1">Medida:</label>
+                        <label class="block text-xs font-bold mb-1 uppercase">Valor de Medida:</label>
                         <div class="flex gap-2">
-                            <input type="text" id="edit-m-text" value="${m.text}" class="border rounded p-2 flex-1 w-full" placeholder="Ej: 2.5m">
-                            <button onclick="updateMeasure(${m.id})" class="bg-arch-900 text-white px-4 rounded">OK</button>
+                            <input type="text" id="edit-m-text" value="${m.text}" class="border border-gray-300 rounded p-2 flex-1 w-full text-sm outline-none" placeholder="Ej: 2.50m">
+                            <button onclick="updateMeasure(${m.id})" class="bg-arch-900 hover:bg-arch-800 text-white px-4 rounded text-xs font-bold uppercase">OK</button>
                         </div>
                     </div>
                 `;
@@ -474,13 +508,21 @@
                 r.readAsDataURL(f);
             });
         }
+        
+        function deleteImage(pointId, imgIdx) {
+            const p = appState.points.find(x => x.id === pointId);
+            if(p && confirm("¿Eliminar esta imagen?")) {
+                p.images.splice(imgIdx, 1);
+                selectItem({type: 'point', item: p}); // refresca el panel
+            }
+        }
 
-        // Visor de imagenes
+        // Visor de imágenes
         let vImgs = [], vIdx = 0;
-        function openViewer(id) {
+        function openViewer(id, startIdx = 0) {
             const p = appState.points.find(x=>x.id===id);
             if(!p || p.images.length===0) return;
-            vImgs = p.images; vIdx = 0;
+            vImgs = p.images; vIdx = startIdx;
             document.getElementById('image-viewer').classList.remove('hidden');
             document.getElementById('image-viewer').classList.add('flex');
             updateViewer();
@@ -494,6 +536,7 @@
         function viewerPrev() { vIdx = (vIdx-1+vImgs.length)%vImgs.length; updateViewer(); }
 
         function exitToMenu() {
+            if(!confirm("¿Salir al menú? Guarda antes tus cambios.")) return;
             appState = { project: { name: "", date: "" }, pdfBase64: null, points: [], measurements: [], nextPointNum: 1 };
             document.getElementById('main-app').classList.add('hidden');
             document.getElementById('start-screen').classList.remove('hidden');
@@ -514,8 +557,19 @@
         async function generateReport() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            doc.text(`Informe: ${appState.project.name}`, 10, 10);
-            doc.save('informe.pdf'); // Simplificado para ajustarse al código.
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(20);
+            doc.text(`INFORME DE VISITA`, 20, 20);
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Proyecto: ${appState.project.name}`, 20, 30);
+            doc.text(`Fecha: ${appState.project.date}`, 20, 40);
+            doc.text(`Puntos marcados: ${appState.points.length}`, 20, 50);
+            
+            doc.text(`A continuación se listan los puntos de inspección y sus datos.`, 20, 70);
+            // Implementación básica del informe - se puede expandir para inyectar capturas del canvas y las imágenes asociadas.
+            
+            doc.save(`informe-${appState.project.name}.pdf`);
         }
     </script>
 </body>
